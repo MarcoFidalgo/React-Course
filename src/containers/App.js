@@ -1,11 +1,18 @@
 import React, { Component } from 'react';
 
 import classes from './App.css';
-import Person from '..components/Persons/Person/Person';
-import ErrorBoundary from '../ErrorBoundary/ErrorBoundary';
-
+import Persons from '../components/Persons/Persons';
+import Cockpit from '../components/Cockpit/Cockpit';
+import WithClass from '../hoc/WithClass';
+import AuthContext from '../context/auth-context';
 
 class App extends Component {
+
+  constructor(props) {
+    super(props);
+    console.log('[App.js] constructor');
+  }
+
   state = {
     persons: [
       { id: 'asdasd', name: "Max", age: 28 },
@@ -13,8 +20,29 @@ class App extends Component {
       { id: 'xcvbtg', name: "Stephanie", age: 26 }
     ],
     otherState: 'some other state',
-    showPersons: false
+    showPersons: false,
+    showCockpit: true,
+    counter: 0,
+    authenticated: false
   };
+
+  static getDerivedStateFromProps(props, state) {
+    console.log('[App.js] getDerivedStateFromProps ', props);
+    return state;
+  }
+
+  componentDidMount() {
+    console.log('[App.js] componentDidMount');
+  }
+
+  shouldComponentUpdate(nextProps, nextState) {
+    console.log('[App.js] shouldComponentUpdate');
+    return true;
+  }
+
+  componentDidUpdate() {
+    console.log('[App.js] componentDidUpdate');
+  }
 
   deletePersonHandler = (personIndice) => {
     //const pessoas = this.state.persons.slice();//slice, copia o array, assim nao estamos a mexer diretamente no original
@@ -40,49 +68,37 @@ class App extends Component {
     const persons = [...this.state.persons]
     persons[personIndex] = pessoa;
 
-    this.setState({ persons: persons });
+    this.setState((prevState, props) => {
+      return {
+        persons: persons,
+        counter: prevState.counter + 1
+      };
+    });
   };
 
   //troca o estado da visibilidade
   togglePersonsHandler = () => {
     const doesShow = this.state.showPersons;
     this.setState({ showPersons: !doesShow });
-  }
+  };
+
+  loginHandler = () => {
+    this.setState({ authenticated: true });
+  };
 
   render() {
+    console.log('[App.js] render');
     let persons = null;
-    let btnClass = [classes.Button];
 
     if (this.state.showPersons) {
       persons = (
-        < div >
-          {
-            //vamos mapear o array de javascript para uma representação em JSX
-            //esta função anónima(pessoa) vai correr para cada um dos elementos do array
-            this.state.persons.map((pessoa, indice) => {
-              return <ErrorBoundary key={pessoa.id}>
-                <Person
-                  click={() => this.deletePersonHandler(indice)}
-                  name={pessoa.name}
-                  age={pessoa.age}
-
-                  changed={(event) => this.nameChangedHandler(event, pessoa.id)} />
-              </ErrorBoundary>
-            })}
-        </div>
+        <Persons
+          persons={this.state.persons}
+          clicked={this.deletePersonHandler}
+          changed={this.nameChangedHandler}
+          isAuthenticated={this.state.authenticated}
+        />
       );
-
-      btnClass.push(classes.Red)
-
-    }
-
-    //let classes = ['red', 'bold'].join(' ');//vai passar o array de strings para uma string separada com um espaço
-    const assignedClasses = [];
-    if (this.state.persons.length <= 2) {
-      assignedClasses.push(classes.red);//classes = red
-    }
-    if (this.state.persons.length <= 1) {
-      assignedClasses.push(classes.bold);//classes = red & bold
     }
 
 
@@ -90,19 +106,29 @@ class App extends Component {
     //JSX(parece HTML mas é javascript)
     //converte tags html em elements REACT
     return (
-      <div className={classes.App}>
-        <h1>Bom dia</h1>
-        <p className={assignedClasses.join(' ')} >This is really working</p>
-
+      <WithClass classes={classes.App}>
         <button
-          className={btnClass.join(' ')}
-          onClick={this.togglePersonsHandler}>
-          Switch name
+          onClick={() => {
+            this.setState({ showCockpit: false })
+          }}>
+          Remove Cockpit
         </button>
-        {persons}
 
-
-      </div>
+        <AuthContext.Provider value={{
+          authenticated: this.state.authenticated,
+          login: this.loginHandler
+        }}>
+          {this.state.showCockpit ? (
+            <Cockpit
+              title={this.props.appTitle}
+              showPersons={this.state.showPersons}
+              personsLength={this.state.persons.length}
+              clicked={this.togglePersonsHandler}
+            />) : null
+          }
+          {persons}
+        </AuthContext.Provider>
+      </WithClass >
     );
     //return React.createElement('div', {className: 'App' }, React.createElement('h1', null, 'Does this work now?'))
 
